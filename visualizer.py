@@ -2,12 +2,41 @@ import pandas as pd
 import matplotlib.pyplot as plt
 import numpy as np
 from scipy import stats
+import requests
+import os
+import logging
+
+logger = logging.getLogger(__name__)
+
+def download_from_dropbox(url, local_filename):
+    """Download a file from Dropbox if it doesn't exist locally."""
+    if not os.path.exists(local_filename):
+        logger.info(f"Downloading {local_filename} from Dropbox...")
+        try:
+            response = requests.get(url)
+            response.raise_for_status()
+            with open(local_filename, 'wb') as f:
+                f.write(response.content)
+            logger.info(f"Download completed: {local_filename}")
+        except Exception as e:
+            logger.error(f"Error downloading file: {str(e)}")
+            raise
+
+def ensure_data_exists():
+    """Ensure the data file exists by downloading if necessary."""
+    dropbox_url = "https://www.dropbox.com/scl/fi/xl3bewhqufmw60002orv1/Cleaned_data.csv?rlkey=2ockjpkkhhmd6e8nq6t2xg4ag&st=xcbhhd6y&dl=1"
+    filename = 'Cleaned_data.csv'
+    if not os.path.exists(filename):
+        download_from_dropbox(dropbox_url, filename)
+    return filename
 
 def plot_most_rated_books(fig=None):
     if fig is None:
         fig = plt.figure(figsize=(12, 6))
     
-    df = pd.read_csv('Cleaned_data.csv')
+    # Ensure data exists
+    filename = ensure_data_exists()
+    df = pd.read_csv(filename)
     
     top_books = df['isbn'].value_counts().head(10)
     
@@ -36,7 +65,9 @@ def plot_reviewer_behavior(fig=None):
     if fig is None:
         fig = plt.figure(figsize=(10, 6))
     
-    df = pd.read_csv('Cleaned_data.csv')
+    # Ensure data exists
+    filename = ensure_data_exists()
+    df = pd.read_csv(filename)
     
     user_stats = df.groupby('user_id').agg({
         'rating': ['count', 'mean']
@@ -63,7 +94,9 @@ def plot_rating_count_vs_average(fig=None):
     if fig is None:
         fig = plt.figure(figsize=(10, 6))
     
-    df = pd.read_csv('Cleaned_data.csv')
+    # Ensure data exists
+    filename = ensure_data_exists()
+    df = pd.read_csv(filename)
     
     book_stats = df.groupby('isbn').agg({
         'rating': ['count', 'mean']
